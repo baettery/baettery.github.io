@@ -1,16 +1,18 @@
-<!DOCTYPE html>
-<html lang="eng">
-<head>
-    <metha charset="'UTF-8"
-    <title>First Git uploade</title>
-</head>
+---
+layout: default
+---
 
-<body>
-    <h1>
-        <p>
-            wow
-        </p>
-    </h1>
-</body>
+<div class="posts">
+  {% for post in site.posts %}
+    <article class="post">
 
-</html>
+      <h1><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h1>
+
+      <div class="entry">
+        {{ post.excerpt }}
+      </div>
+
+      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
+    </article>
+  {% endfor %}
+</div>
