@@ -1,0 +1,17 @@
+---
+layout: default
+---
+
+<article class="post">
+  <h1>{{ "First github blog post!" }}</h1>
+
+  <div class="entry">
+    {{ content }}
+  </div>
+
+  <div class="date">
+    Written on {{ December 27, 2022 | date: "%B %e, %Y" }}
+  </div>
+
+  {% include disqus.html %}
+</article>
