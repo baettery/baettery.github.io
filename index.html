@@ -1,18 +1,40 @@
 ---
 layout: default
+title: Home
 ---
-
-<div class="posts">
-  {% for post in site.posts %}
-    <article class="post">
-
-      <h1><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h1>
-
-      <div class="entry">
-        {{ post.excerpt }}
-      </div>
-
-      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
-    </article>
-  {% endfor %}
+<style>
+:root{--ink:#e8f0fc;--muted:#a3b4cf;--bg:#090f1b;--card:#101c2e;--line:#29405a;--mint:#74e0c0;--blue:#8baeff}
+body{background:var(--bg)!important;color:var(--ink)!important}a{color:inherit}.wrapper-masthead{background:#0c1524;border-bottom:1px solid #24364b!important}.masthead .site-name a,.masthead .site-description,.masthead nav a{color:var(--ink)!important}.site-description{color:var(--muted)!important}.site-avatar img{border-radius:16px}.wrapper-footer{background:#0c1524;border-top:1px solid #24364b}#main.container{max-width:1160px!important;width:min(92%,1160px)!important}.site-shell{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.025em}.site-shell *{box-sizing:border-box}.site-shell p{line-height:1.75}.site-shell h1,.site-shell h2,.site-shell h3{font-family:inherit;color:var(--ink);line-height:1.16}.site-shell a{text-decoration:none}.site-shell .eyebrow{font:700 11px/1.5 ui-monospace,monospace;letter-spacing:.17em;text-transform:uppercase;color:var(--mint)}.site-shell .hero{padding:78px 0 60px;display:grid;grid-template-columns:1.2fr .8fr;align-items:center;gap:26px}.site-shell .hero h1{font-size:clamp(42px,6vw,78px);letter-spacing:-.065em;margin:18px 0 22px;font-weight:760}.site-shell .hero h1 span{color:var(--mint)}.site-shell .intro{font-size:18px;color:#c3d1e3;max-width:570px;line-height:1.8}.site-shell .actions{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0}.site-shell .btn{padding:13px 19px;border-radius:11px;border:1px solid #416078;font-size:13px;font-weight:700;color:var(--ink);display:inline-block}.site-shell .btn-primary{color:#07141c;background:var(--mint);border-color:var(--mint)}.site-shell .btn:hover,.site-shell .tile:hover{transform:translateY(-3px)}.site-shell .btn,.site-shell .tile{transition:transform .22s ease,border-color .22s ease}.site-shell .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}.site-shell .tag{border:1px solid #30465c;background:#111d30;border-radius:99px;color:#b6cae5;padding:7px 11px;font-size:11px}.site-shell .orbital{height:330px;position:relative;display:grid;place-items:center;isolation:isolate}.site-shell .orbital:before{content:"";position:absolute;width:270px;height:270px;border:1px solid #3a6186;border-radius:50%;box-shadow:0 0 100px #3677a022,inset 0 0 80px #3d8eb01a;transform:rotateX(60deg) rotate(-22deg)}.site-shell .orbital:after{content:"";position:absolute;width:210px;height:210px;border:1px dashed #3d849b66;border-radius:50%;transform:rotateX(28deg) rotate(30deg)}.site-shell .core{width:150px;height:150px;background:radial-gradient(circle at 38% 32%,#7de8d0,#2a6680 53%,#10213c 82%);border-radius:50%;box-shadow:0 0 80px #55c9c04d;animation:levitate 5s ease-in-out infinite;z-index:2}.site-shell .sat{position:absolute;padding:9px 12px;border:1px solid #456a80;background:#14253b;border-radius:10px;color:#c6d9ec;font:11px ui-monospace,monospace;z-index:4}.site-shell .sat-a{top:24px;right:3%}.site-shell .sat-b{bottom:48px;left:2%}.site-shell .sat-c{bottom:24px;right:4%}@keyframes levitate{50%{transform:translateY(-13px)}}.site-shell .section{padding:40px 0 52px;border-top:1px solid #223449}.site-shell .section-head{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:24px}.site-shell .section h2{font-size:clamp(26px,3vw,38px);margin:10px 0}.site-shell .section-head p{max-width:430px;color:var(--muted);font-size:13px}.site-shell .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.site-shell .tile{background:linear-gradient(150deg,#14243b,#0e192a);border:1px solid #2b4057;border-radius:17px;overflow:hidden;min-height:210px}.site-shell .tile .inner{padding:22px}.site-shell .tile h3{font-size:20px;margin:12px 0}.site-shell .tile p{font-size:13px;color:#adbed5;line-height:1.7;margin:0}.site-shell .tile .meta{font:11px ui-monospace,monospace;color:#8dacc9;letter-spacing:.02em}.site-shell .tile .mark{height:118px;background:radial-gradient(circle at 35% 45%,#2c827d88,transparent 42%),repeating-radial-gradient(circle at 65% 70%,#80b8ce33 0 1px,transparent 2px 17px),#10243b;display:flex;align-items:center;justify-content:center;font-size:52px}.site-shell .tile .mark-alt{background:linear-gradient(130deg,#1d2748,#133d4b)}.site-shell .tile .mark-soft{background:linear-gradient(130deg,#18314b,#173135)}.site-shell .tile .label{display:inline-block;margin-top:19px;color:var(--mint);font-size:12px;font-weight:700}.site-shell .note{background:#0e1b2c;border:1px solid #274054;border-radius:15px;padding:25px;display:grid;grid-template-columns:1fr 1fr;gap:28px}.site-shell .note p{color:#afc3d9;font-size:14px;margin:0}.site-shell .note strong{color:#effbff}.site-shell .closing{padding:42px 0 72px;color:#b4c8df}.site-shell .closing a{color:var(--mint);text-decoration:underline;text-underline-offset:4px}@media(max-width:780px){.site-shell .hero{grid-template-columns:1fr;padding-top:45px}.site-shell .orbital{height:210px}.site-shell .orbital:before{width:180px;height:180px}.site-shell .orbital:after{width:150px;height:150px}.site-shell .core{width:110px;height:110px}.site-shell .grid{grid-template-columns:1fr}.site-shell .note{grid-template-columns:1fr}.site-shell .section-head{display:block}.site-shell .hero h1{font-size:48px}}@media(prefers-reduced-motion:reduce){.site-shell .core{animation:none}.site-shell .tile,.site-shell .btn{transition:none}}
+</style>
+<div class="site-shell">
+<section class="hero">
+<div>
+<div class="eyebrow">DATA · AUTOMATION · INTERACTIVE EXPERIMENTS</div>
+<h1>Curious about<br><span>what data can do.</span></h1>
+<p class="intro">데이터를 정리하고, 숫자 뒤의 맥락을 추적하고, 반복되는 일을 조금 더 간단하게 만드는 방법을 고민합니다. 이곳은 완성된 결과보다 그 과정에서 나온 질문과 실험을 쌓아가는 개인 작업실입니다.</p>
+<div class="actions"><a class="btn btn-primary" href="#work">Explore my work ↗</a><a class="btn" href="https://github.com/baettery" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a class="btn" href="/about/">About me ↗</a></div>
+<div class="tags"><span class="tag">Python</span><span class="tag">Text Analytics</span><span class="tag">Data Visualization</span><span class="tag">Workflow Automation</span><span class="tag">Learning in public</span></div>
+</div>
+<div class="orbital" aria-hidden="true"><div class="core"></div><div class="sat sat-a">01 / find patterns</div><div class="sat sat-b">02 / test ideas</div><div class="sat sat-c">03 / build tools</div></div>
+</section>
+<section id="work" class="section">
+<div class="section-head"><div><div class="eyebrow">01 / Featured experiment</div><h2>Things I build</h2></div><p>직접 만져볼 수 있는 작은 프로젝트부터 공개 가능한 분석 실험까지.</p></div>
+<div class="grid">
+<a class="tile" href="/world-economy-time-machine/"><div class="mark">🌍</div><div class="inner"><div class="meta">INTERACTIVE VISUALIZATION · 2026</div><h3>World Economy Time Machine</h3><p>연도에 따라 움직이는 3D 지구본과 GDP 순위 레이스. 무료 공개 데이터로 만드는 세계 경제의 시간 여행.</p><span class="label">Open live experiment ↗</span></div></a>
+<div class="tile"><div class="mark mark-alt">⌁</div><div class="inner"><div class="meta">WORKING NOTES · TEXT DATA</div><h3>Making sense of messy text</h3><p>뉴스와 온라인 텍스트를 다룰 때, 무엇을 데이터로 볼지부터 정하는 기준과 검수에 관한 기록.</p><span class="label">Field notes · writing in progress</span></div></div>
+<div class="tile"><div class="mark mark-soft">✳</div><div class="inner"><div class="meta">WORKING NOTES · AUTOMATION</div><h3>Less repetitive work</h3><p>반복 업무를 작은 스크립트와 AI 도구로 바꾸면서 시도한 자동화 아이디어들.</p><span class="label">Lab notes · writing in progress</span></div></div>
+</div></section>
+<section class="section">
+<div class="section-head"><div><div class="eyebrow">02 / How I think</div><h2>A few things I keep returning to</h2></div></div>
+<div class="note"><p><strong>First, define the data.</strong><br>비슷해 보이는 숫자도 집계 기준이 다르면 전혀 다른 이야기를 합니다. 분석하기 전에 무엇을 세고 무엇을 제외할지부터 확인합니다.</p><p><strong>Then ask why.</strong><br>수치가 변했다는 사실에서 멈추지 않고 어떤 채널, 어떤 맥락, 어떤 예외 때문에 달라졌는지를 살펴봅니다.</p><p><strong>Automate the repeatable.</strong><br>똑같은 손작업을 줄이는 데서 시작해, 사람이 판단해야 하는 부분에 시간을 더 쓰는 방식을 찾습니다.</p><p><strong>Share the experiments.</strong><br>완성도 중요하지만, 무엇이 안 됐고 어떻게 고쳤는지도 남기고 싶습니다. 이 사이트는 그 기록입니다.</p></div>
+</section>
+<section class="section">
+<div class="section-head"><div><div class="eyebrow">03 / On the desk</div><h2>Currently exploring</h2></div></div>
+<div class="grid">
+<div class="tile"><div class="inner"><div class="meta">VISUAL</div><h3>Small data, big picture</h3><p>복잡한 정제 없이도 공개 데이터를 생생하게 보여주는 인터랙티브 시각화.</p></div></div>
+<div class="tile"><div class="inner"><div class="meta">WORKFLOW</div><h3>AI as a practical tool</h3><p>일과 생활의 반복 루틴에 AI를 안전하게 연결하고 검증하는 방법.</p></div></div>
+<div class="tile"><div class="inner"><div class="meta">LEARNING</div><h3>Keep learning, keep building</h3><p>데이터 분석, 개발, 금융과 비즈니스 사이의 연결을 탐색하는 개인 학습 기록.</p></div></div>
+</div>
+</section>
+<div class="closing"><div class="eyebrow">THANKS FOR STOPPING BY</div><p>새로운 실험은 이곳과 <a href="https://github.com/baettery">GitHub</a>에 조금씩 추가할 예정입니다. ✦</p></div>
 </div>
