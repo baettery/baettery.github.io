@@ -38,3 +38,9 @@ Nominal GDP is not inflation adjusted; ranks are sensitive to exchange rates. On
 
 ## Verification
 Source uploaded to GitHub. Live endpoint and remote API require independent browser checks before considering deployment confirmed.
+
+### v2.0.1 — Globe.gl runtime bugfix (2026-10-08)
+- Fixed incorrect `pointTransitionDuration` method name to `pointsTransitionDuration`.
+- The previous typo threw a TypeError during globe initialization and prevented data loading.
+- Confirmed the plural API name in the Globe.gl documentation; browser end-to-end rendering still needs a live check.
+- Fix commit: `dbf9fb04ec07b09b468df4a1d08916ef0787671e`.
