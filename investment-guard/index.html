@@ -35,5 +35,5 @@ function bind(){document.querySelector('[data-refresh]')?.addEventListener('clic
 function openEdit(t){let f=s.holdings.find(h=>h.ticker===t);editor={old:f?.ticker||null,v:f?structuredClone(f):{ticker:'',name:'',type:'stock',shares:0,avgPrice:0,maxWeight:25,profitWatch:40}};render()}
 function change(e){let k=e.target.dataset.s,v=e.target.value;if(k.startsWith('e')){let h=editor.v;if(k==='eTicker')h.ticker=v.toUpperCase();if(k==='eShares')h.shares=+v||0;if(k==='eAvg')h.avgPrice=+v||0;if(k==='eName')h.name=v;if(k==='eMax')h.maxWeight=+v||0;if(k==='eProfit')h.profitWatch=+v||0;return}if(k==='apiKey')s.apiKey=v;else if(k.startsWith('st'))s.qldStages[+k.slice(2)]=+v||0;else s[k]=+v||0;save();msg='✓ 저장됨';render()}
 function saveEdit(){let h=editor.v;h.ticker=(h.ticker||'').trim().toUpperCase();h.name=h.name||h.ticker;if(!h.ticker)return;let i=s.holdings.findIndex(x=>x.ticker===editor.old);if(i>=0)s.holdings[i]=h;else s.holdings.push(h);sel=h.ticker;editor=null;save();render()}function delEdit(){s.holdings=s.holdings.filter(h=>h.ticker!==editor.old);sel=s.holdings[0]?.ticker||'';editor=null;save();render()}
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});render();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=3',{updateViaCache:'none'}).catch(()=>{});render();
 </script></body></html>
