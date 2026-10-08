@@ -62,71 +62,98 @@ main{max-width:1430px;padding:0 32px;margin:auto}.intro{padding:55px 0 30px;disp
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script>
 "use strict";
+// Economic Atlas v5. All series are fetched from the World Bank WDI API.
+// Nominal GDP = international scale at market exchange rates; real GDP = domestic output over time.
+// Annual ranks include observed economies; rank CHANGES use a common-country cohort.
 const $=id=>document.getElementById(id),API="https://api.worldbank.org/v2";
-const fmt=new Intl.NumberFormat("ko-KR");
-let countries=new Map(),gdp=new Map(),growth=new Map(),years=[],year=2000,baseYear=1960,focus="KOR",mode="gdp",timer=null,mapInitialized=false,historyCache=new Map(),loading=true;
-const money=v=>v==null?"—":v>=1e12?"$"+(v/1e12).toFixed(2)+"T":v>=1e9?"$"+(v/1e9).toFixed(1)+"B":"$"+(v/1e6).toFixed(1)+"M";
-const pct=v=>v==null?"—":v.toFixed(2)+"%";
-const pp=v=>v==null?"—":(v>0?"+":"")+v.toFixed(2)+"%p";
-const deltaRank=v=>v==null?"N/A":v>0?"▲ "+v:v<0?"▼ "+Math.abs(v):"—";
-function ranked(y){if(historyCache.has(y))return historyCache.get(y);let list=Array.from(gdp.get(y)||[]).map(pair=>({id:pair[0],v:pair[1],name:countries.get(pair[0])||pair[0]})).sort((a,b)=>b.v-a.v);list.forEach((d,i)=>d.rank=i+1);const total=list.reduce((n,d)=>n+d.v,0);let result={list,byCode:new Map(list.map(d=>[d.id,d])),total};historyCache.set(y,result);return result}
-const item=(y,id)=>ranked(y).byCode.get(id);
-const share=(y,id)=>{const r=ranked(y),d=r.byCode.get(id);return d&&r.total>0?d.v/r.total*100:null};
-function select(id){if(!countries.has(id))return;focus=id;render()}
+const meta={gdp:["NY.GDP.MKTP.CD","명목 GDP"],real:["NY.GDP.MKTP.KD","실질 GDP"],growth:["NY.GDP.MKTP.KD.ZG","실질 GDP 성장률"],gdppc:["NY.GDP.PCAP.CD","1인당 명목 GDP"],ppppc:["NY.GDP.PCAP.PP.KD","1인당 PPP 실질 GDP"]};
+const data={gdp:new Map(),real:new Map(),growth:new Map(),gdppc:new Map(),ppppc:new Map()};
+let countries=new Map(),world=new Map(),years=[],year=2000,baseYear=1960,focus="KOR",mode="gdp",trendMode="real",clock=null,loading=true,history=new Map(),mapReady=false,optionalErrors=[];
+const fmt=new Intl.NumberFormat("ko-KR"),money=v=>v==null?"—":Math.abs(v)>=1e12?"$"+(v/1e12).toFixed(2)+"T":Math.abs(v)>=1e9?"$"+(v/1e9).toFixed(2)+"B":"$"+(v/1e6).toFixed(1)+"M";
+const perc=v=>v==null?"N/A":v.toFixed(2)+"%",pp=v=>v==null?"N/A":(v>0?"+":"")+v.toFixed(2)+"%p",diffstr=v=>v==null?"N/A":v>0?"▲ "+v:v<0?"▼ "+(-v):"—";
+const get=(metric,y,id)=>data[metric].get(y)?.get(id)??null;
+function ranks(y){if(history.has(y))return history.get(y);let rows=Array.from(data.gdp.get(y)||[]).map(([id,v])=>({id,v,name:countries.get(id)||id})).sort((a,b)=>b.v-a.v);rows.forEach((r,i)=>r.rank=i+1);let out={rows,by:new Map(rows.map(r=>[r.id,r]))};history.set(y,out);return out}
+const item=(y,id)=>ranks(y).by.get(id);
+// The WLD aggregate is the official denominator; do not sum only the observed countries.
+function share(y,id){let v=get("gdp",y,id),w=world.get(y);return v!=null&&w>0?v/w*100:null}
+// A changing set of countries can create artificial changes in the league table.
+// Restrict rank-change calculations to countries observed at BOTH dates.
+function commonRanks(a,b){let A=ranks(a),B=ranks(b),ids=new Set(A.rows.filter(d=>B.by.has(d.id)).map(d=>d.id)),toMap=r=>new Map(r.rows.filter(d=>ids.has(d.id)).map((d,i)=>[d.id,i+1]));return {first:toMap(A),last:toMap(B),size:ids.size}}
+function rankChange(cohort,id){let a=cohort.first.get(id),b=cohort.last.get(id);return a!=null&&b!=null?a-b:null}
+function select(code){if(!countries.has(code))return;focus=code;render()}
 function goto(y){if(!years.includes(y))return;year=y;render()}
-function stop(){if(timer)clearInterval(timer);timer=null;$("play").textContent="▶ 재생"}
-function startPlay(){if(loading)return;if(timer){stop();return}if(year>=years[years.length-1])year=years[0];$("play").textContent="Ⅱ 일시정지";render();timer=setInterval(()=>{let i=years.indexOf(year);if(i<0||i>=years.length-1){stop();return}year=years[i+1];render()},1050)}
-$("play").onclick=startPlay;
+function stop(){clearInterval(clock);clock=null;$("play").textContent="▶ 재생"}
+function play(){if(loading)return;if(clock){stop();return}if(year>=years.at(-1))year=years[0];$("play").textContent="Ⅱ 일시정지";render();clock=setInterval(()=>{let i=years.indexOf(year);if(i>=years.length-1){stop();return}year=years[i+1];render()},+$("speed").value)}
+$("play").onclick=play;$("speed").onchange=()=>{if(clock){stop();play()}};
 $("slider").oninput=e=>{stop();goto(+e.target.value)};
-$("baseline").onchange=e=>{baseYear=+e.target.value;render()};
 $("metric").onchange=e=>{mode=e.target.value;render()};
+$("trendMetric").onchange=e=>{trendMode=e.target.value;drawTrend()};
+$("baseline").onchange=e=>{baseYear=+e.target.value;render()};
 $("reset").onclick=()=>{stop();goto(years[0])};
 document.querySelectorAll("[data-country]").forEach(b=>b.onclick=()=>select(b.dataset.country));
 document.querySelectorAll("[data-year]").forEach(b=>b.onclick=()=>{stop();goto(+b.dataset.year)});
-function render(){if(loading)return;const curr=ranked(year),past=ranked(baseYear),selected=curr.byCode.get(focus),prior=past.byCode.get(focus),diff=selected&&prior?prior.rank-selected.rank:null,oldShare=share(baseYear,focus),newShare=share(year,focus);
-$("year").textContent=year;$("slider").value=year;$("leader").textContent=curr.list[0]?.name||"—";$("leadVal").textContent=money(curr.list[0]?.v);const kr=item(year,"KOR"),kb=item(baseYear,"KOR");$("korRank").textContent=kr?"#"+kr.rank:"—";$("korShift").textContent=kr&&kb?deltaRank(kb.rank-kr.rank)+" · "+baseYear+"년 대비":"기준 연도와 비교 불가";$("coverage").textContent=fmt.format(curr.list.length)+"개국";
-$("countryName").textContent=countries.get(focus)||focus;$("countryGDP").textContent=money(selected?.v);$("countryRank").textContent=selected?"#"+selected.rank:"—";$("rankDiff").textContent=deltaRank(diff);$("shareNow").textContent=pct(newShare);$("shareDiff").textContent=pp(newShare!=null&&oldShare!=null?newShare-oldShare:null);
+function render(){if(loading)return;
+const r=ranks(year),c=commonRanks(baseYear,year),chosen=item(year,focus),shift=rankChange(c,focus),s=share(year,focus),previous=share(baseYear,focus);
+$("year").textContent=year;$("slider").value=year;$("leader").textContent=r.rows[0]?.name||"—";$("leadVal").textContent=money(r.rows[0]?.v);
+const kr=item(year,"KOR");$("korRank").textContent=kr?"#"+kr.rank:"—";$("korShift").textContent=diffstr(rankChange(c,"KOR"))+" · "+c.size+"개 공통국가 비교";
+$("coverage").textContent=fmt.format(r.rows.length)+"개국";
+$("countryName").textContent=countries.get(focus)||focus;$("countryGDP").textContent=money(chosen?.v);
+$("countryRank").textContent=chosen?"#"+chosen.rank:"—";$("rankDiff").textContent=diffstr(shift);$("shareNow").textContent=perc(s);$("shareDiff").textContent=pp(s!=null&&previous!=null?s-previous:null);
 document.querySelectorAll("[data-country]").forEach(b=>b.classList.toggle("on",b.dataset.country===focus));
-$("storyTitle").textContent=selected?"Economic context · "+year:"관측 자료 없음";
-$("storyBody").textContent=selected&&prior?"기준 "+baseYear+"년 "+prior.rank+"위에서 "+year+"년 "+selected.rank+"위로 이동했습니다. 국가별 명목 GDP 순위는 환율·물가 변화와 결측 국가 수의 영향을 받습니다.":year+"년 또는 비교 기준 연도에 해당 국가의 GDP 자료가 없어 순위 차이를 계산할 수 없습니다.";
+$("storyTitle").textContent="Economic context · "+year;
+$("storyBody").textContent=c.first.has(focus)?"두 시점에 모두 GDP가 있는 "+c.size+"개 국가 기준으로 "+baseYear+"년 "+c.first.get(focus)+"위 → "+year+"년 "+c.last.get(focus)+"위 ("+diffstr(shift)+")입니다. 위의 현재 순위는 해당 연도 관측국 전체 기준이므로 숫자가 다를 수 있습니다.":"기준 연도와 현재 연도의 자료가 모두 존재하지 않아 동일 국가 집합 기준 순위 변화를 산출할 수 없습니다.";
 $("rankingTitle").textContent=year+"년 GDP 상위 12개국";
-const rp=document.createDocumentFragment();curr.list.slice(0,12).forEach(row=>{let div=document.createElement("div");let p=past.byCode.get(row.id),d=p?p.rank-row.rank:null;div.className="rank-item"+(row.id===focus?" sel":"");div.tabIndex=0;div.innerHTML='<span class="pos"></span><span class="cname"></span><span class="usd"></span><span class="delta"></span>';div.children[0].textContent=row.rank;div.children[1].textContent=row.name;div.children[2].textContent=money(row.v);div.children[3].textContent=deltaRank(d);div.children[3].className="delta "+(d>0?"positive":d<0?"negative":"neutral");div.onclick=()=>select(row.id);div.onkeydown=e=>{if(e.key==="Enter")select(row.id)};rp.append(div)});$("ranking").replaceChildren(rp);
-$("compareYear").textContent=year;const cmp=document.createDocumentFragment();["KOR","USA","CHN"].forEach(code=>{let d=item(year,code),div=document.createElement("div");div.className="comparison";let n=document.createElement("div");n.className="n";n.textContent=countries.get(code)||code;let v=document.createElement("strong");v.textContent=money(d?.v);let r=document.createElement("span");r.textContent=d?"세계 "+d.rank+"위":"자료 없음";div.append(n,v,r);cmp.append(div)});$("compare").replaceChildren(cmp);
-drawTrend();drawMap(curr);$("status").textContent=year+"년 · World Bank GDP 관측 "+curr.list.length+"개국 · 클릭하면 국가와 그래프가 연동됩니다.";
-}
-function drawTrend(){const box=$("trend"),width=Math.max(290,box.clientWidth||450),height=172,left=38,right=10,top=10,bottom=26,entries=years.map(y=>({y,v:item(y,focus)?.v||null})),values=entries.filter(e=>e.v!=null).map(e=>e.v);box.replaceChildren();if(!values.length){box.textContent="GDP 시계열 자료 없음";return}
-const hi=Math.max(...values),lo=0,px=y=>left+(y-years[0])/(years[years.length-1]-years[0])*(width-left-right),py=v=>top+(1-v/(hi||1))*(height-top-bottom);
-const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 "+width+" "+height);svg.style.overflow="visible";
-const add=(tag,attrs,text)=>{const n=document.createElementNS("http://www.w3.org/2000/svg",tag);Object.entries(attrs).forEach(p=>n.setAttribute(p[0],p[1]));if(text!=null)n.textContent=text;svg.append(n);return n};
-for(let k=0;k<=2;k++){let v=hi*k/2,y=py(v);add("line",{x1:left,y1:y,x2:width-right,y2:y,stroke:"#e3eaed"});add("text",{x:0,y:y+4,fill:"#8ca0ac","font-size":10},money(v))}
-let seg=[],prev=null;function flush(){if(seg.length>1)add("polyline",{points:seg.map(p=>p.join(",")).join(" "),fill:"none",stroke:"#277d99","stroke-width":2.6,"stroke-linejoin":"round"});seg=[]}
-entries.forEach(e=>{if(e.y>year)return;if(e.v!=null){if(prev!==e.y-1)flush();seg.push([px(e.y),py(e.v)]);prev=e.y}else{flush();prev=null}});flush();
-for(let y of [1960,1980,2000,2020]){if(y<years[0]||y>years[years.length-1])continue;add("text",{x:px(y),y:height-3,"text-anchor":"middle","font-size":10,fill:"#8295a0"},y)}
-const current=item(year,focus);if(current){add("circle",{cx:px(year),cy:py(current.v),r:4.5,fill:"#277d99",stroke:"white","stroke-width":2})}
-box.append(svg);$("trendTitle").textContent=(countries.get(focus)||focus)+"의 장기 GDP 추이"}
-function drawMap(r){if(!window.Plotly){$("map").innerHTML='<div class="loading">지도 라이브러리를 불러오지 못했습니다. 새로고침해 주세요.</div>';return}
-const vals=r.list.map(d=>{const v=mode==="growth"?growth.get(year)?.get(d.id):mode==="share"?share(year,d.id):d.v;return {id:d.id,name:d.name,rank:d.rank,value:v,gdp:d.v}}).filter(d=>d.value!=null&&Number.isFinite(d.value));
-const title={gdp:"Global GDP distribution",share:"Share of world GDP",growth:"Real GDP growth by country"};
-$("mapTitle").textContent=title[mode];$("mapSubtitle").textContent={gdp:"명목 GDP 규모 (현재 미 달러) · 진한 색은 큰 규모",share:"관측 국가 합 대비 세계 GDP 점유율 · 진한 색은 높은 비중",growth:"물가 효과를 제외한 실질 GDP 성장률 · 상승/하락을 구분"}[mode];
-$("mapLegend").innerHTML={gdp:"색 농도: 국가별 GDP 규모 (로그 스케일)<br>옅은 회색: 해당 연도 자료 없음",share:"색 농도: 관측 국가 합 대비 GDP 점유율<br>옅은 회색: 해당 연도 자료 없음",growth:"청록색: 성장 / 붉은색: 역성장<br>옅은 회색: 해당 연도 자료 없음"}[mode];
-const zs=vals.map(d=>mode==="gdp"?Math.log10(d.value):mode==="share"?Math.sqrt(d.value):d.value),maxShare=Math.max(1,...vals.map(d=>d.value));
-const main={type:"choropleth",locationmode:"ISO-3",locations:vals.map(d=>d.id),z:zs,customdata:vals.map(d=>[d.name,d.rank,mode==="growth"?d.value.toFixed(2)+"%":mode==="share"?d.value.toFixed(2)+"%":money(d.value)]),hovertemplate:"<b>%{customdata[0]}</b><br>GDP 순위 #%{customdata[1]}<br>"+(mode==="growth"?"실질 GDP 성장률: ":mode==="share"?"GDP 점유율: ":"명목 GDP: ")+"%{customdata[2]}<extra></extra>",colorscale:mode==="growth"?[[0,"#c76d68"],[.5,"#f1f2f3"],[1,"#278f85"]]:[[0,"#e5eef2"],[.4,"#b0cedb"],[.75,"#6c9eb3"],[1,"#225875"]],zmin:mode==="growth"?-12:mode==="gdp"?7:0,zmax:mode==="growth"?12:mode==="gdp"?14:Math.sqrt(maxShare),showscale:false,marker:{line:{color:"#ffffff",width:.32}},showlegend:false};
-const focusTrace={type:"choropleth",locationmode:"ISO-3",locations:[focus],z:[1],zmin:0,zmax:1,colorscale:[[0,"#d2a45c"],[1,"#d2a45c"]],showscale:false,hovertemplate:(countries.get(focus)||focus)+" · 선택 국가<extra></extra>",marker:{line:{color:"#a46b26",width:1.5}},showlegend:false};
-const layout={geo:{projection:{type:"natural earth"},showframe:false,showcoastlines:false,showland:true,landcolor:"#edf0f2",showocean:true,oceancolor:"#f8fafb",showcountries:true,countrycolor:"#ffffff",bgcolor:"rgba(0,0,0,0)",lataxis:{range:[-60,85]}},paper_bgcolor:"rgba(0,0,0,0)",margin:{l:0,r:0,t:0,b:0},dragmode:false,showlegend:false,hoverlabel:{bgcolor:"#fff",font:{color:"#253c4e",size:12}},uirevision:"world"};
-const config={responsive:true,displayModeBar:false,scrollZoom:false};
-const root=$("map");
-Plotly.react(root,[main,focusTrace],layout,config).then(()=>{if(!mapInitialized){mapInitialized=true;root.on("plotly_click",ev=>{const code=ev.points?.[0]?.location;if(code&&countries.has(code))select(code)})}}).catch(error=>{$("status").textContent="지도 그리기 오류: "+error.message;console.error(error)});
-}
-async function request(url){const r=await fetch(url);if(!r.ok)throw Error("HTTP "+r.status);const j=await r.json();if(!Array.isArray(j)||!Array.isArray(j[1]))throw Error("World Bank API 형식 오류");return j[1]}
-async function initialize(){try{const [ct,gs,gr]=await Promise.all([request(API+"/country?format=json&per_page=400"),request(API+"/country/all/indicator/NY.GDP.MKTP.CD?format=json&date=1960:2025&per_page=30000"),request(API+"/country/all/indicator/NY.GDP.MKTP.KD.ZG?format=json&date=1960:2025&per_page=30000")]);const valid=new Set();
-ct.forEach(c=>{if(c.region&&c.region.value!=="Aggregates"){valid.add(c.id);countries.set(c.id,c.name)}});
-gs.forEach(r=>{if(!valid.has(r.countryiso3code)||!Number.isFinite(r.value)||r.value<=0)return;const y=+r.date;if(!gdp.has(y))gdp.set(y,new Map());gdp.get(y).set(r.countryiso3code,r.value)});
-gr.forEach(r=>{if(!valid.has(r.countryiso3code)||!Number.isFinite(r.value))return;const y=+r.date;if(!growth.has(y))growth.set(y,new Map());growth.get(y).set(r.countryiso3code,r.value)});
-years=Array.from(gdp.keys()).filter(y=>gdp.get(y).size>0).sort((a,b)=>a-b);if(!years.length)throw Error("GDP 관측값이 비어 있습니다.");
-baseYear=years[0];$("baseline").replaceChildren(...years.map(y=>{const o=document.createElement("option");o.value=y;o.textContent=y;return o}));$("slider").min=years[0];$("slider").max=years[years.length-1];["play","slider","metric","baseline","reset"].forEach(id=>$(id).disabled=false);
-loading=false;year=years.includes(2000)?2000:years[years.length-1];render();
-}catch(error){loading=true;$("status").classList.add("error");$("status").textContent="데이터 연결 실패: "+error.message+" · 잠시 후 새로고침해 주세요.";console.error(error)}}
-window.addEventListener("resize",()=>{if(!loading)drawTrend()});
-initialize();
+const frag=document.createDocumentFragment();
+r.rows.slice(0,12).forEach(d=>{let n=document.createElement("div"),delta=rankChange(c,d.id);n.className="rank-item"+(d.id===focus?" sel":"");n.tabIndex=0;n.innerHTML='<span class="pos"></span><span class="cname"></span><span class="usd"></span><span class="delta"></span>';n.children[0].textContent=d.rank;n.children[1].textContent=d.name;n.children[2].textContent=money(d.v);n.children[3].textContent=diffstr(delta);n.children[3].className="delta "+(delta>0?"positive":delta<0?"negative":"neutral");n.title="▲▼는 두 연도 공통 "+c.size+"개국 기준 순위 변화";n.onclick=()=>select(d.id);n.onkeydown=e=>{if(e.key==="Enter")select(d.id)};frag.append(n)});
+$("ranking").replaceChildren(frag);
+$("compareYear").textContent=year;const cmp=document.createDocumentFragment();
+["KOR","USA","CHN"].forEach(id=>{let v=item(year,id),n=document.createElement("div");n.className="comparison";let name=document.createElement("div");name.className="n";name.textContent=countries.get(id)||id;let total=document.createElement("strong");total.textContent=money(v?.v);let label=document.createElement("span");label.textContent=v?"현재 관측국 중 "+v.rank+"위":"GDP 자료 없음";n.append(name,total,label);cmp.append(n)});$("compare").replaceChildren(cmp);
+let note=year+"년 · GDP 관측 "+r.rows.length+"개국 · 동일 국가 비교 "+c.size+"개국";
+const preceding=ranks(year-1).rows.length;if(year>=years.at(-1)-1&&preceding>0&&r.rows.length/preceding<.9)note+=" · ⚠ 전년 대비 자료 포괄률이 낮습니다";
+if(!world.has(year))note+=" · ⚠ WLD 세계 총계 결측";
+if(optionalErrors.length)note+=" · 일부 지표 자료 연결 실패";
+$("status").textContent=note;$("status").classList.toggle("data-warning",note.includes("⚠"));
+drawTrend();drawMap()}
+function drawTrend(){const root=$("trend"),width=Math.max(300,root.clientWidth||450),height=175,left=48,right=14,top=10,bottom=24;root.replaceChildren();
+const values=years.map(y=>({y,v:get(trendMode,y,focus)})),valid=values.filter(x=>x.v!=null);if(!valid.length){root.textContent="이 지표의 시계열 자료가 없습니다.";return}
+let max=Math.max(...valid.map(x=>x.v)),min=0,xx=y=>left+(y-years[0])/(years.at(-1)-years[0])*(width-left-right),yy=v=>top+(max-v)/(max-min||1)*(height-top-bottom);
+const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 "+width+" "+height);
+const add=(tag,attrs,label)=>{const n=document.createElementNS("http://www.w3.org/2000/svg",tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(label!=null)n.textContent=label;svg.append(n)};
+const show=v=>trendMode==="gdppc"||trendMode==="ppppc"?Math.round(v).toLocaleString("en-US"):money(v);
+for(let k=0;k<3;k++){let amount=max*k/2,v=yy(amount);add("line",{x1:left,y1:v,x2:width-right,y2:v,stroke:"#e3eaef"});add("text",{x:0,y:v+4,fill:"#8ea0aa","font-size":10},show(amount))}
+let seg=[],prev=null;function flush(){if(seg.length>1)add("polyline",{points:seg.map(v=>v.join(",")).join(" "),fill:"none",stroke:"#277d99","stroke-width":2.5});seg=[]}
+values.forEach(x=>{if(x.y>year)return;if(x.v==null){flush();prev=null;return}if(prev!==x.y-1)flush();seg.push([xx(x.y),yy(x.v)]);prev=x.y});flush();
+for(const y of [1960,1980,2000,2020]){if(y>=years[0]&&y<=years.at(-1))add("text",{x:xx(y),y:height-4,"text-anchor":"middle","font-size":10,fill:"#8295a0"},y)}
+const cv=get(trendMode,year,focus);if(cv!=null)add("circle",{cx:xx(year),cy:yy(cv),r:4.5,fill:"#277d99",stroke:"white","stroke-width":2});
+root.append(svg);$("trendTitle").textContent=(countries.get(focus)||focus)+" · "+meta[trendMode][1];
+$("trendNote").textContent=trendMode==="real"?"물가 효과를 제거한 불변 달러 기준 GDP입니다. 한 국가의 실질 생산량 장기 변화에 적합하며, 생활수준 전체를 의미하지 않습니다.":trendMode==="gdp"?"명목 GDP는 물가와 시장환율의 영향을 포함합니다. 선의 상승을 실질 성장으로 해석해서는 안 됩니다.":trendMode==="gdppc"?"1인당 명목 GDP는 총 GDP를 인구로 나눈 평균값으로 소득 분배를 보여주지는 않습니다.":"구매력평가(PPP) 기준의 실질 1인당 GDP이며, 소득 분포나 삶의 질 전체는 나타내지 않습니다.";}
+function drawMap(){if(!window.Plotly){$("map").textContent="지도 라이브러리 연결 실패 · 다른 표는 이용할 수 있습니다.";return}
+const observed=data[mode].get(year)||new Map();
+let vals=Array.from(observed).filter(([id,v])=>countries.has(id)&&Number.isFinite(v)&&(mode==="growth"||v>0)).map(([id,v])=>({id,v,name:countries.get(id),rank:item(year,id)?.rank}));
+if(mode==="share")vals=ranks(year).rows.map(r=>({id:r.id,name:r.name,rank:r.rank,v:share(year,r.id)})).filter(r=>r.v!=null);
+const names={gdp:"Global GDP distribution",share:"Share of world GDP",growth:"Real GDP growth by country",gdppc:"Nominal GDP per person",ppppc:"Real GDP per person at PPP"};
+$("mapTitle").textContent=names[mode];
+$("mapSubtitle").textContent={gdp:"명목 GDP 규모 (시장환율·현재 US$) · 로그 스케일",share:"세계은행 WLD 합계 대비 명목 GDP 비중",growth:"전년 대비 실질 GDP 성장률 · 0% 중심 비교",gdppc:"1인당 명목 GDP (현재 US$/인)",ppppc:"PPP 기준 실질 1인당 GDP (불변 국제달러/인)"}[mode];
+const zero=mode==="growth",shareMode=mode==="share",z=vals.map(d=>zero?Math.max(-12,Math.min(12,d.v)):shareMode?d.v:Math.log10(Math.max(d.v,1)));
+const low=zero?-12:shareMode?0:(z.length?Math.min(...z):0),high=zero?12:shareMode?Math.max(1,...z):Math.max(1,...z);
+const custom=vals.map(d=>[d.name,d.rank==null?"자료 없음":"#"+d.rank,zero||shareMode?d.v.toFixed(2)+"%":mode==="gdp"?money(d.v):Math.round(d.v).toLocaleString("en-US")+(mode==="ppppc"?" 국제달러":" US$")]);
+const main={type:"choropleth",locationmode:"ISO-3",locations:vals.map(d=>d.id),z,customdata:custom,hovertemplate:"<b>%{customdata[0]}</b><br>명목 GDP 순위 %{customdata[1]}<br>"+meta[mode][1]+": %{customdata[2]}<extra></extra>",colorscale:zero?[[0,"#b95753"],[.5,"#f1f3f4"],[1,"#208878"]]:[[0,"#e4eef3"],[.4,"#b0cfdc"],[.75,"#6e9eb3"],[1,"#215a76"]],zmin:low,zmax:high,showscale:true,colorbar:{thickness:9,len:.56,x:1.0,title:{text:zero?"%":shareMode?"%":"log10"},tickfont:{size:10,color:"#728494"}},marker:{line:{color:"#fff",width:.3}}};
+const hi=vals.some(d=>d.id===focus)?[{type:"choropleth",locationmode:"ISO-3",locations:[focus],z:[1],zmin:0,zmax:1,colorscale:[[0,"#d5a365"],[1,"#d5a365"]],showscale:false,hovertemplate:(countries.get(focus)||focus)+" · 선택 국가<extra></extra>",marker:{line:{color:"#a56f30",width:1.5}}}]:[];
+const layout={geo:{projection:{type:"natural earth"},showframe:false,showcoastlines:false,showland:true,landcolor:"#e8eef1",showocean:true,oceancolor:"#f8fafb",showcountries:true,countrycolor:"#fff",bgcolor:"rgba(0,0,0,0)"},paper_bgcolor:"rgba(0,0,0,0)",margin:{l:0,r:25,t:0,b:0},dragmode:false,showlegend:false,hoverlabel:{bgcolor:"#fff",font:{color:"#253c4e",size:12}},uirevision:"world"};
+$("mapLegend").textContent=zero?"청록 = 성장 / 붉은색 = 역성장 · ±12% 밖은 최외곽 색상":shareMode?"색 농도 = WLD 세계 GDP에서 차지하는 비중(%)":"진한 색 = 높은 "+meta[mode][1]+" · 회색 = 결측";
+$("mapFootnote").textContent=zero?"실질 성장률 색상은 -12~+12%로 고정합니다. 이 범위를 벗어난 국가는 끝색으로 표시되며 정확한 값은 마우스로 확인하세요.":shareMode?"공식 WLD를 분모로 사용합니다. 국가별 포괄범위와 국가 경계 차이에 유의하세요.":mode==="gdp"?"명목 GDP는 환율·물가 영향을 포함합니다. 시각적 색상 농도는 로그 스케일입니다.":"1인당 수치는 평균적 생산 수준으로, 불평등과 삶의 질을 직접 나타내지 않습니다.";
+const root=$("map");Plotly.react(root,[main,...hi],layout,{responsive:true,displayModeBar:false,scrollZoom:false}).then(()=>{if(!mapReady){mapReady=true;root.on("plotly_click",e=>{let code=e.points?.[0]?.location;if(code&&countries.has(code))select(code)})}}).catch(e=>{console.error(e);$("status").textContent="지도 시각화 오류: "+e.message})}
+async function fetchRows(url){let res=await fetch(url);if(!res.ok)throw Error("World Bank HTTP "+res.status);let d=await res.json();if(!Array.isArray(d)||!Array.isArray(d[1]))throw Error("World Bank API 응답 형식 오류");return d[1]}
+function fill(metric,rows,valid){for(const r of rows){let id=r.countryiso3code,y=+r.date,v=r.value;if(!valid.has(id)||!Number.isFinite(v)||(metric!=="growth"&&v<=0))continue;if(!data[metric].has(y))data[metric].set(y,new Map());data[metric].get(y).set(id,v)}}
+async function initialize(){try{
+const [ct,g,w]=await Promise.all([fetchRows(API+"/country?format=json&per_page=400"),fetchRows(API+"/country/all/indicator/NY.GDP.MKTP.CD?format=json&date=1960:2025&per_page=30000"),fetchRows(API+"/country/WLD/indicator/NY.GDP.MKTP.CD?format=json&date=1960:2025&per_page=1000")]);
+const valid=new Set();ct.forEach(c=>{if(c.region?.value!=="Aggregates"){valid.add(c.id);countries.set(c.id,c.name)}});fill("gdp",g,valid);w.forEach(r=>{if(r.value>0&&Number.isFinite(r.value))world.set(+r.date,r.value)});
+years=Array.from(data.gdp.keys()).sort((a,b)=>a-b);if(!years.length)throw Error("기본 GDP 데이터 없음");
+const extra=await Promise.allSettled(["real","growth","gdppc","ppppc"].map(k=>fetchRows(API+"/country/all/indicator/"+meta[k][0]+"?format=json&date=1960:2025&per_page=30000")));
+extra.forEach((result,i)=>{const key=["real","growth","gdppc","ppppc"][i];if(result.status==="fulfilled")fill(key,result.value,valid);else{optionalErrors.push(key);console.warn("Optional indicator unavailable",key,result.reason)}});
+$("baseline").replaceChildren(...years.map(y=>{let o=document.createElement("option");o.value=y;o.textContent=y;return o}));baseYear=years[0];$("slider").min=years[0];$("slider").max=years.at(-1);["play","slider","metric","baseline","reset"].forEach(id=>$(id).disabled=false);
+loading=false;year=years.includes(2000)?2000:years.at(-1);render()
+}catch(e){loading=true;$("status").classList.add("error");$("status").textContent="데이터 연결 실패: "+e.message;console.error(e)}}
+window.addEventListener("resize",()=>{if(!loading)drawTrend()});initialize();
 </script>
 </body></html>
