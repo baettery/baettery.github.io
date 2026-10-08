@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#ffffff">
@@ -28,36 +28,36 @@ main{max-width:1430px;padding:0 32px;margin:auto}.intro{padding:55px 0 30px;disp
 <body>
 <nav><div class="brand">Economic Atlas <span> / Shinyoung's Lab</span></div><div class="navend"><a href="https://baettery.github.io/">Home</a><a href="https://github.com/baettery/baettery.github.io">GitHub ↗</a></div></nav>
 <main>
-<section class="intro"><div><div class="eyebrow">AN INTERACTIVE STUDY OF THE WORLD ECONOMY</div><h1>The world changes.<br><em>Watch the numbers move.</em></h1><p>한눈에 보는 세계 경제의 변화. 국가를 선택하고 연도를 움직이며 경제 규모, 세계 점유율, 실질 GDP 성장률의 차이를 탐색해 보세요.</p></div><span class="version">World Economy Time Machine · 5.0</span></section>
+<section class="intro"><div><div class="eyebrow">AN INTERACTIVE STUDY OF THE WORLD ECONOMY</div><h1>The world changes.<br><em>Watch the numbers move.</em></h1><p>Explore the changing world economy. Select a country, travel through time, and compare output, global GDP share, and real growth.</p></div><span class="version">World Economy Time Machine · 5.0</span></section>
 <section class="tools">
-<button id="play" class="btn dark" disabled>▶ 재생</button><label class="speed-label">속도 <select id="speed" aria-label="재생 속도"><option value="2000">🐢 느긋하게</option><option value="1050" selected>🚶 산책하듯</option><option value="470">🐇 쌩쌩</option></select></label><span id="year" class="year">2000</span>
-<input type="range" aria-label="연도" id="slider" min="1960" max="2025" value="2000" disabled>
-<label>지도 지표 <select id="metric" disabled><option value="gdp">GDP 규모</option><option value="share">세계 GDP 점유율</option><option value="growth">실질 GDP 성장률</option><option value="gdppc">1인당 명목 GDP</option><option value="ppppc">1인당 PPP 실질 GDP</option></select></label>
-<label>비교 기준 <select id="baseline" disabled><option>1960</option></select></label>
-<button id="reset" class="btn" disabled>↺ 처음</button>
+<button id="play" class="btn dark" disabled>▶ Play</button><label class="speed-label">Speed <select id="speed" aria-label="Playback speed"><option value="2000">🐢 Slow</option><option value="1050" selected>🚶 Normal</option><option value="470">🐇 Fast</option></select></label><span id="year" class="year">2000</span>
+<input type="range" aria-label="Year" id="slider" min="1960" max="2025" value="2000" disabled>
+<label>Map metric <select id="metric" disabled><option value="gdp">GDP 규모</option><option value="share">세계 GDP 점유율</option><option value="growth">실질 GDP 성장률</option><option value="gdppc">1인당 명목 GDP</option><option value="ppppc">1인당 PPP 실질 GDP</option></select></label>
+<label>Baseline year <select id="baseline" disabled><option>1960</option></select></label>
+<button id="reset" class="btn" disabled>↺ Restart</button>
 </section>
-<p id="status">World Bank 공식 데이터를 불러오고 있습니다…</p>
+<p id="status">Loading official World Bank data…</p>
 <section class="headline">
-<div class="stat"><div class="label">GLOBAL LEADER · SELECTED YEAR</div><strong id="leader">—</strong><small id="leadVal">GDP 규모 기준</small></div>
-<div class="stat"><div class="label">SOUTH KOREA · GDP RANK</div><strong id="korRank">—</strong><small id="korShift">현재 연도 기준</small></div>
-<div class="stat"><div class="label">COUNTRIES WITH DATA</div><strong id="coverage">—</strong><small>해당 연도 GDP 유효 국가 수</small></div>
+<div class="stat"><div class="label">GLOBAL LEADER · SELECTED YEAR</div><strong id="leader">—</strong><small id="leadVal">By nominal GDP</small></div>
+<div class="stat"><div class="label">SOUTH KOREA · GDP RANK</div><strong id="korRank">—</strong><small id="korShift">Selected year</small></div>
+<div class="stat"><div class="label">COUNTRIES WITH DATA</div><strong id="coverage">—</strong><small>Economies reporting GDP</small></div>
 </section>
 <div class="layout">
-<section class="panel"><div class="pane-head"><div><div class="section-label">01 / THE WORLD AT A GLANCE</div><h2 id="mapTitle">Global GDP distribution</h2><p class="caption" id="mapSubtitle">국가별 명목 GDP 규모에 따른 색상 · 지도를 클릭해 국가 선택</p></div></div>
-<div class="map-wrap"><div id="map" aria-label="세계 경제 지도"></div><div class="mapbadge" id="mapLegend">색상은 명목 GDP의 로그 스케일을 의미합니다.</div></div><p id="mapFootnote" class="caption economic-note">옅은 회색은 결측 국가입니다. 국가를 클릭하면 상세 분석이 바뀝니다.</p></section>
+<section class="panel"><div class="pane-head"><div><div class="section-label">01 / THE WORLD AT A GLANCE</div><h2 id="mapTitle">Global GDP distribution</h2><p class="caption" id="mapSubtitle">Country colors indicate nominal GDP · Click a country to explore</p></div></div>
+<div class="map-wrap"><div id="map" aria-label="World economic map"></div><div class="mapbadge" id="mapLegend">Colors represent nominal GDP on a logarithmic scale.</div></div><p id="mapFootnote" class="caption economic-note">Light gray indicates missing data. Selecting a country updates the linked views.</p></section>
 <aside class="panel"><div class="section-label">02 / COUNTRY INSIGHT</div>
-<div class="selectbox"><div class="eyebrow">CURRENT SELECTION</div><h3 id="countryName">South Korea</h3><div class="big" id="countryGDP">—</div><div id="countryUnit" class="bigsub">명목 GDP · 현재 미국 달러 기준</div>
-<div class="keyvals"><div><div class="key">세계 GDP 순위</div><b id="countryRank">—</b></div><div><div class="key">기준 연도 대비</div><b id="rankDiff">—</b></div><div><div class="key">세계 GDP 점유율 (WLD 기준)</div><b id="shareNow">—</b></div><div><div class="key">세계 점유율 변화</div><b id="shareDiff">—</b></div></div>
-<div class="selection"><button class="chip" data-country="KOR">한국</button><button class="chip" data-country="USA">미국</button><button class="chip" data-country="CHN">중국</button><button class="chip" data-country="JPN">일본</button><button class="chip" data-country="IND">인도</button></div></div>
-<div class="story"><strong id="storyTitle">변화를 읽는 방식</strong><p id="storyBody">국가를 선택하면 기준 연도와 순위 및 점유율 변화를 비교합니다.</p></div>
+<div class="selectbox"><div class="eyebrow">CURRENT SELECTION</div><h3 id="countryName">South Korea</h3><div class="big" id="countryGDP">—</div><div id="countryUnit" class="bigsub">Nominal GDP · Current US dollars</div>
+<div class="keyvals"><div><div class="key">Global GDP rank</div><b id="countryRank">—</b></div><div><div class="key">Change since baseline</div><b id="rankDiff">—</b></div><div><div class="key">Global GDP share (WLD)</div><b id="shareNow">—</b></div><div><div class="key">Change in world GDP share</div><b id="shareDiff">—</b></div></div>
+<div class="selection"><button class="chip" data-country="KOR">South Korea</button><button class="chip" data-country="USA">United States</button><button class="chip" data-country="CHN">China</button><button class="chip" data-country="JPN">Japan</button><button class="chip" data-country="IND">India</button></div></div>
+<div class="story"><strong id="storyTitle">Understanding the shift</strong><p id="storyBody">Select a country to compare ranking and world GDP share with the baseline year.</p></div>
 </aside>
 </div>
 <div class="section details">
-<section><div class="section-label">03 / ECONOMIC RANKING</div><h2 id="rankingTitle">GDP 상위 12개국</h2><p class="caption">▲▼는 기준 연도 대비 순위 변화입니다. 색상으로 크기보다 움직임을 먼저 읽도록 구성했습니다.</p><div id="ranking" style="margin-top:13px"></div></section>
-<section><div class="section-label">04 / LONG-TERM PERSPECTIVE</div><h2 id="trendTitle">선택 국가의 경제 궤적</h2><p class="caption">선택 국가의 경제 규모 추이. 명목과 실질 지표를 구별하고, 결측 연도는 연결하지 않습니다.</p><label class="trend-choice">추세 지표 <select id="trendMetric"><option value="real">실질 GDP (불변 US$)</option><option value="gdp">명목 GDP (현재 US$)</option><option value="gdppc">1인당 명목 GDP</option><option value="ppppc">1인당 PPP 실질 GDP</option></select></label><p class="caption economic-note" id="trendNote">실질 GDP는 물가 변동을 제거한 생산량 규모를 나타냅니다.</p><div class="trend" id="trend"></div><div class="section-label compare" style="margin-bottom:12px">COUNTRY COMPARISON · <span id="compareYear">2000</span></div><div class="compare-cards" id="compare"></div><p class="caption" style="margin-top:14px">비교 국가는 한국·미국·중국으로 고정되며, 순위표 또는 지도에서 추가 국가를 탐색할 수 있습니다.</p></section>
+<section><div class="section-label">03 / ECONOMIC RANKING</div><h2 id="rankingTitle">Top 12 economies by GDP</h2><p class="caption">▲▼는 Change since baseline 순위 변화입니다. 색상으로 크기보다 움직임을 먼저 읽도록 구성했습니다.</p><div id="ranking" style="margin-top:13px"></div></section>
+<section><div class="section-label">04 / LONG-TERM PERSPECTIVE</div><h2 id="trendTitle">Country economic trajectory</h2><p class="caption">Explore output over time. Nominal and real measures differ; missing years are not connected.</p><label class="trend-choice">Trend metric <select id="trendMetric"><option value="real">Real GDP (constant US$)</option><option value="gdp">Nominal GDP (current US$)</option><option value="gdppc">1인당 명목 GDP</option><option value="ppppc">1인당 PPP 실질 GDP</option></select></label><p class="caption economic-note" id="trendNote">Real GDP tracks output at constant prices, removing domestic price changes.</p><div class="trend" id="trend"></div><div class="section-label compare" style="margin-bottom:12px">COUNTRY COMPARISON · <span id="compareYear">2000</span></div><div class="compare-cards" id="compare"></div><p class="caption" style="margin-top:14px">The comparison features South Korea, the United States, and China. Explore other economies using the map or ranking.</p></section>
 </div>
-<div class="section"><div class="section-label">05 / HISTORICAL CONTEXT</div><h2>Turn the clock to a turning point.</h2><p class="caption">경제적으로 중요한 시점으로 이동합니다. 사건과 개별 지표 변화 사이의 인과관계를 단정하지 않습니다.</p><div class="eras"><button class="era" data-year="1973"><b>1973</b> 오일쇼크</button><button class="era" data-year="1997"><b>1997</b> 아시아 금융위기</button><button class="era" data-year="2008"><b>2008</b> 글로벌 금융위기</button><button class="era" data-year="2020"><b>2020</b> 팬데믹</button></div></div>
-<footer><b>ABOUT THE DATA.</b> World Bank World Development Indicators. 명목 GDP = NY.GDP.MKTP.CD, 실질 GDP = NY.GDP.MKTP.KD, 실질 GDP 성장률 = NY.GDP.MKTP.KD.ZG, 1인당 명목 GDP = NY.GDP.PCAP.CD, PPP 기준 실질 1인당 GDP = NY.GDP.PCAP.PP.KD. 세계 GDP 점유율은 국가 명목 GDP를 같은 연도 WLD 세계 GDP 합계로 나눈 값입니다. 연도별 GDP 순위는 해당 연도 관측 국가 순위이며 ▲▼ 변동은 두 연도 모두 관측된 공통 국가만 놓고 비교합니다. 환율·물가·국가 경계·결측과 최신 연도 자료의 불완전성을 고려하세요. 1인당 GDP는 소득 분포나 삶의 질을 직접 나타내지 않습니다. <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.CD">명목 GDP</a> · <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG">성장률</a> · <a href="https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.KD">PPP</a></footer>
+<div class="section"><div class="section-label">05 / HISTORICAL CONTEXT</div><h2>Turn the clock to a turning point.</h2><p class="caption">Jump to major economic turning points. Events provide context, not evidence of causation.</p><div class="eras"><button class="era" data-year="1973"><b>1973</b> Oil shock</button><button class="era" data-year="1997"><b>1997</b> Asian financial crisis</button><button class="era" data-year="2008"><b>2008</b> Global financial crisis</button><button class="era" data-year="2020"><b>2020</b> Pandemic</button></div></div>
+<footer><b>ABOUT THE DATA.</b> World Bank World Development Indicators. Nominal GDP = NY.GDP.MKTP.CD; real GDP = NY.GDP.MKTP.KD; annual real growth = NY.GDP.MKTP.KD.ZG; nominal GDP per capita = NY.GDP.PCAP.CD; real GDP per capita at PPP = NY.GDP.PCAP.PP.KD. World GDP share equals national nominal GDP divided by the World Bank WLD aggregate in the same year. Annual GDP ranks reflect reporting economies. ▲▼ rank changes use only economies observed in both comparison years. Exchange rates, inflation, national boundaries, missing observations, and incomplete recent-year reporting affect comparability. GDP per capita does not directly measure income inequality or overall quality of life. <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.CD">Nominal GDP</a> · <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG">Growth rate</a> · <a href="https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.KD">PPP</a></footer>
 </main>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script>
@@ -82,8 +82,8 @@ function commonRanks(a,b){let A=ranks(a),B=ranks(b),ids=new Set(A.rows.filter(d=
 function rankChange(cohort,id){let a=cohort.first.get(id),b=cohort.last.get(id);return a!=null&&b!=null?a-b:null}
 function select(code){if(!countries.has(code))return;focus=code;render()}
 function goto(y){if(!years.includes(y))return;year=y;render()}
-function stop(){clearInterval(clock);clock=null;$("play").textContent="▶ 재생"}
-function play(){if(loading)return;if(clock){stop();return}if(year>=years.at(-1))year=years[0];$("play").textContent="Ⅱ 일시정지";render();clock=setInterval(()=>{let i=years.indexOf(year);if(i>=years.length-1){stop();return}year=years[i+1];render()},+$("speed").value)}
+function stop(){clearInterval(clock);clock=null;$("play").textContent="▶ Play"}
+function play(){if(loading)return;if(clock){stop();return}if(year>=years.at(-1))year=years[0];$("play").textContent="Ⅱ Pause";render();clock=setInterval(()=>{let i=years.indexOf(year);if(i>=years.length-1){stop();return}year=years[i+1];render()},+$("speed").value)}
 $("play").onclick=play;$("speed").onchange=()=>{if(clock){stop();play()}};
 $("slider").oninput=e=>{stop();goto(+e.target.value)};
 $("metric").onchange=e=>{mode=e.target.value;render()};
@@ -102,7 +102,7 @@ $("countryRank").textContent=chosen?"#"+chosen.rank:"—";$("rankDiff").textCont
 document.querySelectorAll("[data-country]").forEach(b=>b.classList.toggle("on",b.dataset.country===focus));
 $("storyTitle").textContent="Economic context · "+year;
 $("storyBody").textContent=c.first.has(focus)?"두 시점에 모두 GDP가 있는 "+c.size+"개 국가 기준으로 "+baseYear+"년 "+c.first.get(focus)+"위 → "+year+"년 "+c.last.get(focus)+"위 ("+diffstr(shift)+")입니다. 위의 현재 순위는 해당 연도 관측국 전체 기준이므로 숫자가 다를 수 있습니다.":"기준 연도와 현재 연도의 자료가 모두 존재하지 않아 동일 국가 집합 기준 순위 변화를 산출할 수 없습니다.";
-$("rankingTitle").textContent=year+"년 GDP 상위 12개국";
+$("rankingTitle").textContent=year+"년 Top 12 economies by GDP";
 const frag=document.createDocumentFragment();
 r.rows.slice(0,12).forEach(d=>{let n=document.createElement("div"),delta=rankChange(c,d.id);n.className="rank-item"+(d.id===focus?" sel":"");n.tabIndex=0;n.innerHTML='<span class="pos"></span><span class="cname"></span><span class="usd"></span><span class="delta"></span>';n.children[0].textContent=d.rank;n.children[1].textContent=d.name;n.children[2].textContent=money(d.v);n.children[3].textContent=diffstr(delta);n.children[3].className="delta "+(delta>0?"positive":delta<0?"negative":"neutral");n.title="▲▼는 두 연도 공통 "+c.size+"개국 기준 순위 변화";n.onclick=()=>select(d.id);n.onkeydown=e=>{if(e.key==="Enter")select(d.id)};frag.append(n)});
 $("ranking").replaceChildren(frag);
